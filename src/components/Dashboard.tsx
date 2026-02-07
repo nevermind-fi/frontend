@@ -54,12 +54,13 @@ export function Dashboard() {
     queryOptions: { enabled: !!userAddress },
   });
 
-  // Read vault allocations
+  // Read vault allocations (only when wallet is connected)
   const { data: rawAllocations } = useReadContract({
     contract: vaultContract,
     method:
       "function getAllocations() view returns ((string protocol, uint256 amount, uint256 chainId)[])",
     params: [],
+    queryOptions: { enabled: !!userAddress },
   });
 
   // Derive risk profile label from on-chain value
@@ -134,7 +135,9 @@ export function Dashboard() {
 
   // Build positions from applied recommendation, or fall back to on-chain allocations
   // Dedup by protocol+chain: sum amounts, weighted-average APY
+  // Only show positions when a wallet is connected
   const positions: Position[] = useMemo(() => {
+    if (!userAddress) return [];
     if (appliedRecommendation && totalDeposited > 0) {
       const merged = new Map<string, { protocol: string; chain: string; amount: number; apySum: number }>();
       for (const alloc of appliedRecommendation.allocations) {
@@ -166,7 +169,7 @@ export function Dashboard() {
         status: "active" as const,
       })
     );
-  }, [appliedRecommendation, totalDeposited, rawAllocations]);
+  }, [userAddress, appliedRecommendation, totalDeposited, rawAllocations]);
 
   const handleWorkflowComplete = useCallback((result: CREWorkflowResult) => {
     if (result.recommendation) {
@@ -246,8 +249,8 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <YieldChart />
-          <PositionsTable positions={positions} />
+          {userAddress && <YieldChart />}
+          {userAddress && <PositionsTable positions={positions} />}
           <YieldTable />
           {recommendation && (
             <AIRecommendation
