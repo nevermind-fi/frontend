@@ -253,7 +253,6 @@ export function Dashboard() {
             Connect your wallet to deposit USDC, set your risk profile, and let AI optimize your yields across DeFi protocols.
           </p>
         </div>
-        <WalletButton label="Connect Wallet to Get Started" />
       </div>
     );
   }
