@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { motion } from "motion/react";
+import { HoverBorderGradient } from "./ui/hover-border-gradient";
 
 const barData = [
   { day: "Mon", value: 72, apy: 4.8, active: true },
@@ -111,7 +112,7 @@ function StatsCard() {
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+    <section className="relative overflow-hidden min-h-screen flex items-center">
       {/* Vortex beam — funnel to focal point */}
       <div className="beam-wrapper">
         <div className="beam-vortex" />
@@ -183,13 +184,15 @@ export function Hero() {
               >
                 Launch App
               </Link>
-              <Link
+              <HoverBorderGradient
+                as={Link}
                 href="https://github.com"
-                className="inline-flex items-center gap-2 rounded-full border border-neutral-700 px-6 py-3 text-sm font-medium text-neutral-300 hover:border-neutral-500 hover:text-white transition-colors"
+                containerClassName="rounded-full"
+                className="bg-neutral-950 text-neutral-300 flex items-center gap-2 text-sm font-medium"
               >
                 Documentation
                 <Icon icon="solar:document-text-linear" className="h-4 w-4" />
-              </Link>
+              </HoverBorderGradient>
             </motion.div>
           </div>
 
