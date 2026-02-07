@@ -1,0 +1,280 @@
+@import "tailwindcss";
+
+@theme {
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #009669;
+  --color-emerald-600: #009669;
+  --color-emerald-900: #064e3b;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: #050505;
+  color: #e5e5e5;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Global button reset ── */
+button,
+a[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"] {
+  cursor: pointer;
+}
+
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Vortex beam — wormhole / portal effect ── */
+@keyframes vortex-breathe {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+@keyframes focal-pulse {
+  0%, 100% {
+    box-shadow: 0 0 40px 15px rgba(16, 185, 129, 0.5), 0 0 80px 30px rgba(16, 185, 129, 0.2), 0 0 120px 50px rgba(16, 185, 129, 0.08);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 60px 25px rgba(16, 185, 129, 0.6), 0 0 120px 50px rgba(16, 185, 129, 0.3), 0 0 180px 80px rgba(16, 185, 129, 0.12);
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+@keyframes ring-spin {
+  0% { transform: translate(-50%, -50%) rotateX(75deg) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotateX(75deg) rotate(360deg); }
+}
+
+@keyframes particle-fall {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  85% { opacity: 0.7; }
+  100% { transform: translateY(45vh); opacity: 0; }
+}
+
+@keyframes particle-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 0.8; }
+  85% { opacity: 0.5; }
+  100% { transform: translateY(-35vh); opacity: 0; }
+}
+
+/* Full-size container */
+.beam-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+  animation: vortex-breathe 3s ease-in-out infinite;
+}
+
+/* Vortex shape — stacked radial gradients forming a funnel */
+.beam-vortex {
+  position: absolute;
+  inset: 0;
+  background:
+    /* ── Top entry — wide mouth ── */
+    radial-gradient(ellipse 550px 100px at 50% 2%, rgba(16, 185, 129, 0.14) 0%, transparent 100%),
+    radial-gradient(ellipse 420px 90px at 50% 10%, rgba(16, 185, 129, 0.16) 0%, transparent 100%),
+    radial-gradient(ellipse 300px 80px at 50% 18%, rgba(52, 211, 153, 0.18) 0%, transparent 100%),
+    radial-gradient(ellipse 200px 70px at 50% 26%, rgba(52, 211, 153, 0.2) 0%, transparent 100%),
+    radial-gradient(ellipse 120px 60px at 50% 34%, rgba(52, 211, 153, 0.25) 0%, transparent 100%),
+    radial-gradient(ellipse 60px 50px at 50% 42%, rgba(110, 231, 183, 0.3) 0%, transparent 100%),
+    /* ── Focal point — singularity ── */
+    radial-gradient(ellipse 30px 30px at 50% 50%, rgba(110, 231, 183, 0.7) 0%, rgba(52, 211, 153, 0.3) 50%, transparent 100%),
+    /* ── Bottom exit — expanding ── */
+    radial-gradient(ellipse 50px 50px at 50% 58%, rgba(110, 231, 183, 0.28) 0%, transparent 100%),
+    radial-gradient(ellipse 100px 60px at 50% 66%, rgba(52, 211, 153, 0.22) 0%, transparent 100%),
+    radial-gradient(ellipse 180px 70px at 50% 74%, rgba(52, 211, 153, 0.18) 0%, transparent 100%),
+    radial-gradient(ellipse 280px 80px at 50% 82%, rgba(16, 185, 129, 0.14) 0%, transparent 100%),
+    radial-gradient(ellipse 400px 100px at 50% 92%, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+}
+
+/* Inner vortex — tighter, brighter core funnel */
+.beam-vortex-inner {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 180px 60px at 50% 5%, rgba(52, 211, 153, 0.08) 0%, transparent 100%),
+    radial-gradient(ellipse 120px 50px at 50% 15%, rgba(52, 211, 153, 0.12) 0%, transparent 100%),
+    radial-gradient(ellipse 70px 40px at 50% 28%, rgba(110, 231, 183, 0.2) 0%, transparent 100%),
+    radial-gradient(ellipse 30px 30px at 50% 40%, rgba(110, 231, 183, 0.35) 0%, transparent 100%),
+    radial-gradient(ellipse 15px 15px at 50% 50%, rgba(167, 243, 208, 0.8) 0%, transparent 100%),
+    radial-gradient(ellipse 25px 30px at 50% 60%, rgba(110, 231, 183, 0.3) 0%, transparent 100%),
+    radial-gradient(ellipse 60px 40px at 50% 72%, rgba(110, 231, 183, 0.15) 0%, transparent 100%),
+    radial-gradient(ellipse 100px 50px at 50% 85%, rgba(52, 211, 153, 0.08) 0%, transparent 100%);
+}
+
+/* Bright focal point with pulsing glow */
+.beam-focal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 243, 208, 1) 0%, rgba(110, 231, 183, 0.6) 30%, transparent 70%);
+  animation: focal-pulse 2s ease-in-out infinite;
+}
+
+/* Entry ring — tilted ellipse at top opening */
+.beam-ring {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotateX(75deg);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(52, 211, 153, 0.15);
+  box-shadow:
+    0 0 20px 4px rgba(16, 185, 129, 0.08),
+    inset 0 0 20px 4px rgba(16, 185, 129, 0.04);
+  animation: ring-spin 15s linear infinite;
+}
+
+/* Particles sucked in from top toward focal */
+.beam-particle-in {
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6ee7b7;
+  box-shadow: 0 0 8px 3px rgba(110, 231, 183, 0.7);
+  animation: particle-fall 2.8s linear infinite;
+}
+
+.beam-particle-in:nth-child(5) {
+  animation-delay: 0.9s;
+  left: calc(50% - 30px);
+  width: 4px;
+  height: 4px;
+}
+
+.beam-particle-in:nth-child(6) {
+  animation-delay: 1.8s;
+  left: calc(50% + 25px);
+  width: 3px;
+  height: 3px;
+  opacity: 0.7;
+}
+
+/* Particles expelled from focal downward */
+.beam-particle-out {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px 2px rgba(52, 211, 153, 0.6);
+  animation: particle-rise 3s linear infinite;
+  animation-direction: reverse;
+}
+
+.beam-particle-out:nth-child(8) {
+  animation-delay: 1s;
+  left: calc(50% + 12px);
+  width: 3px;
+  height: 3px;
+  opacity: 0.7;
+}
+
+.beam-particle-out:nth-child(9) {
+  animation-delay: 2.2s;
+  left: calc(50% - 15px);
+  width: 3px;
+  height: 3px;
+  opacity: 0.5;
+}
+
+/* ── Marquee animation ── */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee-scroll 25s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Container guide lines ── */
+.guide-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.04);
+  z-index: 0;
+}
+
+/* ── Floating card glow ── */
+.card-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 20px 60px -10px rgba(0, 0, 0, 0.5),
+    0 0 40px -10px rgba(16, 185, 129, 0.1);
+}
+
+/* ── Feature number styling ── */
+.feature-number {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: rgba(16, 185, 129, 0.6);
+}
+
+/* ── Fade in animation ── */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+/* ── Spectrum-inspired focus ring ── */
+*:focus-visible {
+  outline: 2px solid #009669;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Bar chart animation ── */
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.bar-animate {
+  transform-origin: bottom;
+  animation: bar-grow 0.8s ease-out forwards;
+}
