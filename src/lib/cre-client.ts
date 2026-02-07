@@ -25,112 +25,77 @@ export interface CREWorkflowResult {
   timestamp: string;
 }
 
+export type WorkflowProgressCallback = (result: CREWorkflowResult) => void;
+
+interface YieldPool {
+  pool: string;
+  chain: string;
+  project: string;
+  apy: number;
+  tvlUsd: number;
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const RECOMMENDATIONS: Record<string, AllocationRecommendation> = {
-  Conservative: {
-    allocations: [
-      {
-        protocol: "Aave V3",
-        chain: "Ethereum",
-        allocationPct: 50,
-        reasoning: "Highest TVL and battle-tested security on mainnet",
-        currentApy: 4.2,
-      },
-      {
-        protocol: "Compound V3",
-        chain: "Ethereum",
-        allocationPct: 35,
-        reasoning: "Second largest lending protocol, strong audit history",
-        currentApy: 3.8,
-      },
-      {
-        protocol: "Aave V3",
-        chain: "Arbitrum",
-        allocationPct: 15,
-        reasoning: "Small L2 allocation for marginal yield improvement",
-        currentApy: 5.1,
-      },
-    ],
-    summary:
-      "Conservative allocation favoring mainnet blue-chip protocols. 85% on Ethereum for maximum security, 15% on Arbitrum for yield pickup. Expected blended APY: 4.15%.",
-    riskScore: 2,
-  },
-  Balanced: {
-    allocations: [
-      {
-        protocol: "Aave V3",
-        chain: "Ethereum",
-        allocationPct: 35,
-        reasoning: "Core position in the most liquid lending market",
-        currentApy: 4.2,
-      },
-      {
-        protocol: "Aave V3",
-        chain: "Arbitrum",
-        allocationPct: 30,
-        reasoning: "Higher APY on L2 with acceptable bridge risk",
-        currentApy: 5.1,
-      },
-      {
-        protocol: "Compound V3",
-        chain: "Ethereum",
-        allocationPct: 20,
-        reasoning: "Protocol diversification on mainnet",
-        currentApy: 3.8,
-      },
-      {
-        protocol: "Aave V3",
-        chain: "Optimism",
-        allocationPct: 15,
-        reasoning: "Additional L2 exposure for yield optimization",
-        currentApy: 4.8,
-      },
-    ],
-    summary:
-      "Balanced mix across chains and protocols. 55% on Ethereum, 45% on L2s. Diversified across 3 venues for risk-adjusted returns. Expected blended APY: 4.52%.",
-    riskScore: 5,
-  },
-  Aggressive: {
-    allocations: [
-      {
-        protocol: "Morpho",
-        chain: "Ethereum",
-        allocationPct: 30,
-        reasoning: "Highest mainnet yield via optimized peer-to-peer matching",
-        currentApy: 6.2,
-      },
-      {
-        protocol: "Aave V3",
-        chain: "Arbitrum",
-        allocationPct: 30,
-        reasoning: "Best risk-adjusted L2 yield on established protocol",
-        currentApy: 5.1,
-      },
-      {
-        protocol: "Aave V3",
-        chain: "Optimism",
-        allocationPct: 25,
-        reasoning: "Strong L2 yield with growing TVL",
-        currentApy: 4.8,
-      },
-      {
-        protocol: "Aave V3",
-        chain: "Ethereum",
-        allocationPct: 15,
-        reasoning: "Small mainnet anchor for liquidity access",
-        currentApy: 4.2,
-      },
-    ],
-    summary:
-      "Aggressive yield maximization across chains. Heavy L2 and Morpho exposure for highest returns. 45% mainnet, 55% L2. Expected blended APY: 5.28%.",
-    riskScore: 8,
-  },
-};
+const ALLOWED_PROJECTS = ["aave-v3", "compound-v3", "morpho"];
+const ALLOWED_CHAINS = ["Ethereum", "Arbitrum", "Optimism"];
 
-export type WorkflowProgressCallback = (result: CREWorkflowResult) => void;
+async function fetchYieldData(): Promise<YieldPool[]> {
+  const response = await fetch("https://yields.llama.fi/pools");
+  if (!response.ok) {
+    throw new Error(`DeFi Llama API error: ${response.status}`);
+  }
+
+  const json = await response.json();
+  const pools: Array<{
+    pool: string;
+    chain: string;
+    project: string;
+    apy: number;
+    tvlUsd: number;
+    stablecoin: boolean;
+    symbol: string;
+  }> = json.data;
+
+  return pools
+    .filter(
+      (p) =>
+        p.stablecoin &&
+        p.symbol?.toUpperCase().includes("USDC") &&
+        ALLOWED_PROJECTS.includes(p.project) &&
+        ALLOWED_CHAINS.includes(p.chain)
+    )
+    .map((p) => ({
+      pool: p.pool,
+      chain: p.chain,
+      project: p.project,
+      apy: Math.round(p.apy * 100) / 100,
+      tvlUsd: p.tvlUsd,
+    }))
+    .sort((a, b) => b.tvlUsd - a.tvlUsd)
+    .slice(0, 15);
+}
+
+async function analyzeWithLLM(
+  yieldData: YieldPool[],
+  riskProfile: string
+): Promise<AllocationRecommendation> {
+  const response = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ yieldData, riskProfile }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Analysis API error: ${response.status} - ${errorBody}`);
+  }
+
+  const data = await response.json();
+  return data as AllocationRecommendation;
+}
 
 export async function simulateCREWorkflow(
   riskProfile: string,
@@ -140,7 +105,8 @@ export async function simulateCREWorkflow(
     {
       name: "Fetch Yield Data",
       status: "pending",
-      description: "Querying yield rates from Aave, Compound, and Morpho across chains",
+      description:
+        "Querying yield rates from Aave, Compound, and Morpho across chains",
     },
     {
       name: "Read Vault State",
@@ -165,25 +131,87 @@ export async function simulateCREWorkflow(
     timestamp: new Date().toISOString(),
   };
 
-  const durations = [1200, 800, 2500, 1500];
+  // --- Step 1: Fetch Yield Data (REAL) ---
+  result.steps[0] = { ...result.steps[0], status: "running" };
+  onProgress?.({ ...result, steps: [...result.steps] });
 
-  for (let i = 0; i < steps.length; i++) {
-    result.steps[i] = { ...result.steps[i], status: "running" };
-    onProgress?.({ ...result, steps: [...result.steps] });
-
-    await delay(durations[i]);
-
-    result.steps[i] = {
-      ...result.steps[i],
-      status: "completed",
-      duration: durations[i],
+  let yieldData: YieldPool[];
+  const step1Start = Date.now();
+  try {
+    yieldData = await fetchYieldData();
+  } catch (error) {
+    result.steps[0] = {
+      ...result.steps[0],
+      status: "error",
+      duration: Date.now() - step1Start,
     };
+    result.status = "error";
     onProgress?.({ ...result, steps: [...result.steps] });
+    throw error;
   }
+  result.steps[0] = {
+    ...result.steps[0],
+    status: "completed",
+    data: yieldData,
+    duration: Date.now() - step1Start,
+  };
+  onProgress?.({ ...result, steps: [...result.steps] });
 
-  const profile = riskProfile in RECOMMENDATIONS ? riskProfile : "Balanced";
+  // --- Step 2: Read Vault State (simulated) ---
+  result.steps[1] = { ...result.steps[1], status: "running" };
+  onProgress?.({ ...result, steps: [...result.steps] });
+
+  await delay(500);
+
+  result.steps[1] = {
+    ...result.steps[1],
+    status: "completed",
+    duration: 500,
+  };
+  onProgress?.({ ...result, steps: [...result.steps] });
+
+  // --- Step 3: LLM Analysis (REAL via API route) ---
+  result.steps[2] = { ...result.steps[2], status: "running" };
+  onProgress?.({ ...result, steps: [...result.steps] });
+
+  let recommendation: AllocationRecommendation;
+  const step3Start = Date.now();
+  try {
+    recommendation = await analyzeWithLLM(yieldData, riskProfile);
+  } catch (error) {
+    result.steps[2] = {
+      ...result.steps[2],
+      status: "error",
+      duration: Date.now() - step3Start,
+    };
+    result.status = "error";
+    onProgress?.({ ...result, steps: [...result.steps] });
+    throw error;
+  }
+  result.steps[2] = {
+    ...result.steps[2],
+    status: "completed",
+    data: recommendation,
+    duration: Date.now() - step3Start,
+  };
+  onProgress?.({ ...result, steps: [...result.steps] });
+
+  // --- Step 4: Execute Rebalance (simulated) ---
+  result.steps[3] = { ...result.steps[3], status: "running" };
+  onProgress?.({ ...result, steps: [...result.steps] });
+
+  await delay(500);
+
+  result.steps[3] = {
+    ...result.steps[3],
+    status: "completed",
+    duration: 500,
+  };
+  onProgress?.({ ...result, steps: [...result.steps] });
+
+  // --- Done ---
   result.status = "completed";
-  result.recommendation = RECOMMENDATIONS[profile];
+  result.recommendation = recommendation;
   onProgress?.({ ...result, steps: [...result.steps] });
 
   return result;

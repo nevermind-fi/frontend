@@ -1,5 +1,4 @@
-import { getContract } from "thirdweb";
-import { sepolia, arbitrumSepolia } from "thirdweb/chains";
+import { getContract, defineChain } from "thirdweb";
 import { thirdwebClient } from "./client";
 
 export const VAULT_ADDRESS =
@@ -10,17 +9,26 @@ export const USDC_ADDRESS =
   (process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`) ||
   "0x0000000000000000000000000000000000000000";
 
-export const SUPPORTED_CHAINS = [sepolia, arbitrumSepolia];
+// Tenderly Virtual TestNet (forked from Ethereum Mainnet)
+export const tenderlyVNet = defineChain({
+  id: 73571,
+  name: "Nevermind Tenderly VNet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpc: "https://virtual.rpc.tenderly.co/BESTOFRENTO/project/public/nevermind",
+  testnet: true,
+});
+
+export const SUPPORTED_CHAINS = [tenderlyVNet];
 
 export const vaultContract = getContract({
   client: thirdwebClient,
-  chain: sepolia,
+  chain: tenderlyVNet,
   address: VAULT_ADDRESS,
 });
 
 export const usdcContract = getContract({
   client: thirdwebClient,
-  chain: sepolia,
+  chain: tenderlyVNet,
   address: USDC_ADDRESS,
 });
 
