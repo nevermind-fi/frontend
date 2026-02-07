@@ -18,7 +18,7 @@ interface CREWorkflowPanelProps {
 const stepIcons: Record<string, string> = {
   "Fetch Yield Data": "solar:database-linear",
   "Read Vault State": "solar:book-2-linear",
-  "LLM Analysis": "solar:brain-linear",
+  "LLM Analysis": "solar:cpu-bolt-linear",
   "Execute Rebalance": "solar:transfer-horizontal-linear",
 };
 

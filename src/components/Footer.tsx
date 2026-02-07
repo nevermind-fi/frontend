@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 
 export function Footer() {
@@ -11,9 +12,13 @@ export function Footer() {
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-                <Icon icon="solar:bolt-circle-linear" className="h-5 w-5 text-white" />
-              </div>
+              <Image
+                src="/images/logo.png"
+                alt="Nevermind"
+                width={36}
+                height={36}
+                className="rounded-lg"
+              />
               <span className="text-lg font-semibold text-white">Nevermind</span>
             </Link>
             <p className="text-sm text-neutral-500 leading-relaxed max-w-xs">
@@ -59,11 +64,11 @@ export function Footer() {
             Built for the Chainlink Hackathon 2026. Powered by Chainlink CRE + thirdweb.
           </p>
           <div className="flex items-center gap-4">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-neutral-400 transition-colors">
-              <Icon icon="logos:github-icon" className="h-5 w-5 grayscale brightness-200" />
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-neutral-500 hover:text-white transition-colors">
+              <Icon icon="mdi:github" className="h-5 w-5" />
             </a>
-            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-neutral-400 transition-colors">
-              <Icon icon="logos:twitter" className="h-5 w-5 grayscale brightness-200" />
+            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-neutral-500 hover:text-white transition-colors">
+              <Icon icon="mdi:twitter" className="h-5 w-5" />
             </a>
           </div>
         </div>

@@ -10,7 +10,7 @@ interface AgentLogProps {
 
 const actionIcons: Record<AgentLogEntry["action"], string> = {
   analysis: "solar:chart-square-linear",
-  llm: "solar:brain-linear",
+  llm: "solar:cpu-bolt-linear",
   rebalance: "solar:transfer-horizontal-linear",
   deposit: "solar:arrow-down-linear",
   withdraw: "solar:arrow-up-linear",
