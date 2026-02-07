@@ -10,6 +10,7 @@ import { DepositForm } from "./DepositForm";
 import { YieldTable } from "./YieldTable";
 import { YieldChart } from "./YieldChart";
 import { CREWorkflowPanel } from "./CREWorkflowPanel";
+import { WalletButton } from "./WalletButton";
 import { AIRecommendation } from "./AIRecommendation";
 import type { AgentLogEntry, Portfolio, Position } from "@/lib/mock-data";
 import type { CREWorkflowResult, AllocationRecommendation } from "@/lib/cre-client";
@@ -243,14 +244,28 @@ export function Dashboard() {
     }
   }, [recommendation, totalDeposited]);
 
+  if (!userAddress) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+        <div className="space-y-3">
+          <h1 className="text-3xl font-bold text-white">Welcome to Nevermind</h1>
+          <p className="text-zinc-400 max-w-md">
+            Connect your wallet to deposit USDC, set your risk profile, and let AI optimize your yields across DeFi protocols.
+          </p>
+        </div>
+        <WalletButton label="Connect Wallet to Get Started" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PortfolioOverview portfolio={portfolio} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {userAddress && <YieldChart />}
-          {userAddress && <PositionsTable positions={positions} />}
+          <YieldChart />
+          <PositionsTable positions={positions} />
           <YieldTable />
           {recommendation && (
             <AIRecommendation
