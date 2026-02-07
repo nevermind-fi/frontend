@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { PortfolioOverview } from "./PortfolioOverview";
 import { PositionsTable } from "./PositionsTable";
@@ -72,7 +72,36 @@ export function Dashboard() {
     useState<Portfolio["riskProfile"] | null>(null);
   const [recommendation, setRecommendation] =
     useState<AllocationRecommendation | null>(null);
-  const [logs, setLogs] = useState<AgentLogEntry[]>([]);
+  const [appliedRecommendation, setAppliedRecommendation] =
+    useState<AllocationRecommendation | null>(() => {
+      if (typeof window === "undefined") return null;
+      try {
+        const saved = localStorage.getItem("nvm:applied");
+        return saved ? JSON.parse(saved) : null;
+      } catch { return null; }
+    });
+  const [logs, setLogs] = useState<AgentLogEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("nvm:logs");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // Persist to localStorage
+  useEffect(() => {
+    if (appliedRecommendation) {
+      localStorage.setItem("nvm:applied", JSON.stringify(appliedRecommendation));
+    } else {
+      localStorage.removeItem("nvm:applied");
+    }
+  }, [appliedRecommendation]);
+
+  useEffect(() => {
+    if (logs.length > 0) {
+      localStorage.setItem("nvm:logs", JSON.stringify(logs));
+    }
+  }, [logs]);
 
   // Use on-chain value until user explicitly changes it
   const activeRiskProfile = riskProfile ?? onChainRiskLabel;
@@ -82,8 +111,11 @@ export function Dashboard() {
     ? Number(rawBalance) / 1e6
     : 0;
 
-  const currentYield = recommendation
-    ? recommendation.allocations.reduce(
+  // Use applied recommendation for persistent stats, or pending recommendation for preview
+  const activeAllocation = appliedRecommendation ?? recommendation;
+
+  const currentYield = activeAllocation
+    ? activeAllocation.allocations.reduce(
         (sum, a) => sum + (a.currentApy * a.allocationPct) / 100,
         0
       )
@@ -100,8 +132,30 @@ export function Dashboard() {
     [totalDeposited, currentYield, activeRiskProfile]
   );
 
-  // Map on-chain allocations to Position[] for the table
+  // Build positions from applied recommendation, or fall back to on-chain allocations
+  // Dedup by protocol+chain: sum amounts, weighted-average APY
   const positions: Position[] = useMemo(() => {
+    if (appliedRecommendation && totalDeposited > 0) {
+      const merged = new Map<string, { protocol: string; chain: string; amount: number; apySum: number }>();
+      for (const alloc of appliedRecommendation.allocations) {
+        const key = `${alloc.protocol}-${alloc.chain}`;
+        const amount = Math.round(totalDeposited * alloc.allocationPct) / 100;
+        const prev = merged.get(key);
+        if (prev) {
+          prev.apySum += alloc.currentApy * amount;
+          prev.amount += amount;
+        } else {
+          merged.set(key, { protocol: alloc.protocol, chain: alloc.chain, amount, apySum: alloc.currentApy * amount });
+        }
+      }
+      return Array.from(merged.values()).map((m) => ({
+        protocol: m.protocol,
+        chain: m.chain,
+        amount: m.amount,
+        apy: Math.round((m.apySum / m.amount) * 100) / 100,
+        status: "active" as const,
+      }));
+    }
     if (!rawAllocations || rawAllocations.length === 0) return [];
     return rawAllocations.map(
       (alloc: { protocol: string; amount: bigint; chainId: bigint }) => ({
@@ -112,7 +166,7 @@ export function Dashboard() {
         status: "active" as const,
       })
     );
-  }, [rawAllocations]);
+  }, [appliedRecommendation, totalDeposited, rawAllocations]);
 
   const handleWorkflowComplete = useCallback((result: CREWorkflowResult) => {
     if (result.recommendation) {
@@ -124,18 +178,67 @@ export function Dashboard() {
     setLogs((prev) => [...prev, entry]);
   }, []);
 
-  const handleApplyRebalance = useCallback(() => {
+  const [isRebalancing, setIsRebalancing] = useState(false);
+
+  const handleApplyRebalance = useCallback(async () => {
+    if (!recommendation || totalDeposited <= 0) return;
+
+    setIsRebalancing(true);
+    const allocationSummary = recommendation.allocations
+      .map((a) => `${a.allocationPct}% → ${a.protocol} (${a.chain})`)
+      .join(", ");
+
     setLogs((prev) => [
       ...prev,
       {
         timestamp: new Date().toISOString(),
         action: "rebalance" as const,
-        message: "Rebalance applied successfully based on AI recommendation",
-        status: "completed" as const,
+        message: `Submitting rebalance on-chain: ${allocationSummary}`,
+        status: "pending" as const,
       },
     ]);
-    setRecommendation(null);
-  }, []);
+
+    try {
+      const response = await fetch("/api/rebalance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          allocations: recommendation.allocations,
+          totalDeposited,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Rebalance failed");
+      }
+
+      setAppliedRecommendation(recommendation);
+      setLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          action: "rebalance" as const,
+          message: `Rebalance confirmed on-chain (tx: ${data.txHash?.slice(0, 10)}...)`,
+          status: "completed" as const,
+        },
+      ]);
+      setRecommendation(null);
+    } catch (err) {
+      setLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          action: "rebalance" as const,
+          message: `Rebalance failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          status: "failed" as const,
+        },
+      ]);
+    } finally {
+      setIsRebalancing(false);
+    }
+  }, [recommendation, totalDeposited]);
 
   return (
     <div className="space-y-6">
@@ -150,6 +253,7 @@ export function Dashboard() {
             <AIRecommendation
               recommendation={recommendation}
               onApply={handleApplyRebalance}
+              isApplying={isRebalancing}
             />
           )}
         </div>

@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import { prepareContractCall } from "thirdweb";
-import { useActiveAccount, useSendTransaction } from "thirdweb/react";
-import { vaultContract, RISK_PROFILES } from "@/lib/contracts";
 import type { Portfolio } from "@/lib/mock-data";
 
 type RiskProfile = Portfolio["riskProfile"];
@@ -37,38 +34,16 @@ const profiles: { value: RiskProfile; label: string; icon: string; description: 
 
 export function RiskSelector({ defaultValue = "Balanced", onChange }: RiskSelectorProps) {
   const [selected, setSelected] = useState<RiskProfile>(defaultValue);
-  const [isPending, setIsPending] = useState(false);
 
-  const account = useActiveAccount();
-  const { mutateAsync: sendTransaction } = useSendTransaction();
-  const isConnected = !!account;
-
-  async function handleSelect(value: RiskProfile) {
+  function handleSelect(value: RiskProfile) {
     setSelected(value);
     onChange?.(value);
-
-    if (!isConnected) return;
-
-    setIsPending(true);
-    try {
-      const tx = prepareContractCall({
-        contract: vaultContract,
-        method: "function setRiskProfile(uint8 profile)",
-        params: [RISK_PROFILES[value]],
-      });
-      await sendTransaction(tx);
-    } catch {
-      setSelected(selected);
-    } finally {
-      setIsPending(false);
-    }
   }
 
   return (
     <div className="rounded-2xl border border-neutral-800/50 bg-neutral-900/60 p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h2 className="text-sm font-semibold text-white">Risk Profile</h2>
-        {isPending && <Icon icon="solar:refresh-linear" className="h-4 w-4 text-emerald-400 animate-spin" />}
       </div>
       <div className="grid grid-cols-3 gap-2">
         {profiles.map((profile) => {
@@ -77,8 +52,7 @@ export function RiskSelector({ defaultValue = "Balanced", onChange }: RiskSelect
             <button
               key={profile.value}
               onClick={() => handleSelect(profile.value)}
-              disabled={isPending}
-              className={`rounded-xl border p-2.5 text-left transition-colors disabled:opacity-50 min-w-0 ${
+              className={`rounded-xl border p-2.5 text-left transition-colors min-w-0 ${
                 isSelected
                   ? "border-emerald-500/50 bg-emerald-500/5"
                   : "border-neutral-800/50 bg-neutral-900/60 hover:border-neutral-700"

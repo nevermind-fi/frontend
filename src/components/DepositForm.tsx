@@ -123,9 +123,15 @@ export function DepositForm() {
           <input
             id="amount"
             type="number"
+            min="0"
+            step="0.01"
             placeholder="0.00"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "" || parseFloat(val) >= 0) setAmount(val);
+            }}
+            onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
             disabled={isProcessing}
             className="w-full rounded-xl border border-neutral-800/50 bg-neutral-900/60 px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-colors disabled:opacity-50"
             style={{ fontFamily: "var(--font-mono)" }}

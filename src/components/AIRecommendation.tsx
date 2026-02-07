@@ -6,6 +6,7 @@ import type { AllocationRecommendation } from "@/lib/cre-client";
 interface AIRecommendationProps {
   recommendation: AllocationRecommendation;
   onApply?: () => void;
+  isApplying?: boolean;
 }
 
 const riskLabels: Record<number, { label: string; color: string }> = {
@@ -21,7 +22,7 @@ const riskLabels: Record<number, { label: string; color: string }> = {
   10: { label: "Extreme", color: "text-red-400" },
 };
 
-export function AIRecommendation({ recommendation, onApply }: AIRecommendationProps) {
+export function AIRecommendation({ recommendation, onApply, isApplying }: AIRecommendationProps) {
   const risk = riskLabels[recommendation.riskScore] ?? { label: "Unknown", color: "text-neutral-400" };
 
   return (
@@ -88,10 +89,20 @@ export function AIRecommendation({ recommendation, onApply }: AIRecommendationPr
 
         <button
           onClick={onApply}
-          className="w-full flex items-center justify-center gap-2 rounded-full bg-emerald-600 py-3 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+          disabled={isApplying}
+          className="w-full flex items-center justify-center gap-2 rounded-full bg-emerald-600 py-3 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Icon icon="solar:transfer-horizontal-linear" className="h-4 w-4" />
-          Apply Rebalance
+          {isApplying ? (
+            <>
+              <Icon icon="solar:refresh-linear" className="h-4 w-4 animate-spin" />
+              Executing on-chain...
+            </>
+          ) : (
+            <>
+              <Icon icon="solar:transfer-horizontal-linear" className="h-4 w-4" />
+              Apply Rebalance
+            </>
+          )}
         </button>
       </div>
     </div>
