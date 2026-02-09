@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: "openrouter/pony-alpha",
           messages: [
             {
               role: "user",
