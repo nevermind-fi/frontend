@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "openrouter/pony-alpha",
+          model: "google/gemini-2.5-flash",
           messages: [
             {
               role: "user",
